@@ -1,19 +1,27 @@
-from src.models.base import Base
 from src.models.place import Place
 from src.models.user import User
+from src import db
+from datetime import datetime
 
 
-class Review(Base):
-    place_id: str
-    user_id: str
-    comment: str
-    rating: float
+class Review(db.Model):
+    __tablename__ = 'reviews'
 
-    def __init__(
-        self, place_id: str, user_id: str, comment: str, rating: float, **kw
-    ) -> None:
-        super().__init__(**kw)
+    id = db.Column(db.Integer, primary_key=True)
+    place_id = db.Column(db.String(36),
+                         db.ForeignKey('places.id'), nullable=False)
+    user_id = db.Column(db.String(36),
+                        db.ForeignKey('users.id'), nullable=False)
+    comment = db.Column(db.Text, nullable=False)
+    rating = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
 
+    place = db.relationship('Place', backref=db.backref('reviews', lazy=True))
+    user = db.relationship('User', backref=db.backref('reviews', lazy=True))
+
+    def __init__(self, place_id: str, user_id: str,
+                 comment: str, rating: float, **kw) -> None:
         self.place_id = place_id
         self.user_id = user_id
         self.comment = comment
@@ -35,36 +43,22 @@ class Review(Base):
 
     @staticmethod
     def create(data: dict) -> "Review":
-        from src.persistence import db
-
-        user: User | None = User.get(data["user_id"])
-
-        if not user:
-            raise ValueError(f"User with ID {data['user_id']} not found")
-
-        place: Place | None = Place.get(data["place_id"])
-
-        if not place:
-            raise ValueError(f"Place with ID {data['place_id']} not found")
-
         new_review = Review(**data)
-
-        db.save(new_review)
-
+        db.session.add(new_review)
+        db.session.commit()
         return new_review
 
     @staticmethod
     def update(review_id: str, data: dict) -> "Review | None":
-        from src.persistence import db
-
-        review = Review.get(review_id)
+        review = Review.query.get(review_id)
 
         if not review:
-            raise ValueError("Review not found")
+            return None
 
         for key, value in data.items():
-            setattr(review, key, value)
+            if hasattr(review, key):
+                setattr(review, key, value)
 
-        db.update(review)
+        db.session.commit()
 
         return review

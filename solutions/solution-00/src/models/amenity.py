@@ -1,13 +1,11 @@
-from src.models.base import Base
+from src import db
 
 
-class Amenity(Base):
-    name: str
-
-    def __init__(self, name: str, **kw) -> None:
-        super().__init__(**kw)
-
-        self.name = name
+class Amenity(db.Model):
+    id = db.Column(db.String(36), primary_key=True)
+    name = db.Column(db.String(120), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, onupdate=db.func.current_timestamp())
 
     def __repr__(self) -> str:
         return f"<Amenity {self.id} ({self.name})>"
@@ -58,7 +56,8 @@ class PlaceAmenity(Base):
         self.amenity_id = amenity_id
 
     def __repr__(self) -> str:
-        return f"<PlaceAmenity {self.id} ({self.place_id} - {self.amenity_id})>"
+        return (f"<PlaceAmenity {self.id} "
+                f"({self.place_id} - {self.amenity_id})>")
 
     def to_dict(self) -> dict:
         return {
@@ -70,7 +69,7 @@ class PlaceAmenity(Base):
         }
 
     @staticmethod
-    def get(place_id: str, amenity_id: str) -> "PlaceAmenity | None":  # type: ignore
+    def get(place_id: str, amenity_id: str) -> "PlaceAmenity | None":
         from src.persistence import db
 
         place_amenities: list[PlaceAmenity] = db.get_all("placeamenity")
@@ -98,7 +97,9 @@ class PlaceAmenity(Base):
     def delete(place_id: str, amenity_id: str) -> bool:  # type: ignore
         from src.persistence import db
 
-        place_amenity: PlaceAmenity | None = PlaceAmenity.get(place_id, amenity_id)
+        place_amenity: PlaceAmenity | None = PlaceAmenity.get(
+            place_id, amenity_id
+        )
 
         if not place_amenity:
             return False

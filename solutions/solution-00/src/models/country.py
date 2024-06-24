@@ -1,12 +1,15 @@
-class Country:
-    name: str
-    code: str
-    cities: list
+from src.models.country import Country
+from src.persistence import db
+from flask_sqlalchemy import SQLAlchemy
 
-    def __init__(self, name: str, code: str, **kw) -> None:
-        super().__init__(**kw)
-        self.name = name
-        self.code = code
+
+db = SQLAlchemy()
+
+
+class Country(db.Model):
+    __tablename__ = 'country'
+    name = db.Column(db.String(255), nullable=False)
+    code = db.Column(db.String(3), primary_key=True)
 
     def __repr__(self) -> str:
         return f"<Country {self.code} ({self.name})>"
@@ -17,27 +20,17 @@ class Country:
             "code": self.code,
         }
 
-    @staticmethod
-    def get_all() -> list["Country"]:
-        from src.persistence import db
+    @classmethod
+    def get_all(cls) -> list["Country"]:
+        return cls.query.all()
 
-        countries: list["Country"] = db.get_all("country")
+    @classmethod
+    def get(cls, code: str) -> "Country | None":
+        return cls.query.filter_by(code=code).first()
 
-        return countries
-
-    @staticmethod
-    def get(code: str) -> "Country | None":
-        for country in Country.get_all():
-            if country.code == code:
-                return country
-        return None
-
-    @staticmethod
-    def create(name: str, code: str) -> "Country":
-        from src.persistence import db
-
-        country = Country(name, code)
-
-        db.save(country)
-
+    @classmethod
+    def create(cls, name: str, code: str) -> "Country":
+        country = cls(name=name, code=code)
+        db.session.add(country)
+        db.session.commit()
         return country

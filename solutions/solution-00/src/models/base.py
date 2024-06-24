@@ -1,30 +1,24 @@
 from datetime import datetime
-from typing import Any, Optional
 from uuid import uuid4
-from abc import ABC, abstractmethod
+from src import db
+from typing import Any
+from abc import abstractmethod
 
 
-class Base(ABC):
-    id: str
-    created_at: datetime
-    updated_at: datetime
+class Base(db.Model):
+    __abstract__ = True
 
-    def __init__(
-        self,
-        id: Optional[str] = None,
-        created_at: Optional[datetime] = None,
-        updated_at: Optional[datetime] = None,
-        **kwargs,
-    ) -> None:
-        if kwargs:
-            for key, value in kwargs.items():
-                if hasattr(self, key):
-                    continue
+    id = db.Column(db.String(36),
+                   primary_key=True, default=lambda: str(uuid4()))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime,
+                           default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        for key, value in kwargs.items():
+            if hasattr(self, key):
                 setattr(self, key, value)
-
-        self.id = id or str(uuid4())
-        self.created_at = created_at or datetime.now()
-        self.updated_at = updated_at or datetime.now()
 
     @classmethod
     def get(cls, id) -> "Any | None":
