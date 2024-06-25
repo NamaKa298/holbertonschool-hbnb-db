@@ -7,7 +7,7 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///hbnb_dev.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-
+    USE_DATABASE = True
 
 class DevelopmentConfig(Config):
     DEBUG = True
